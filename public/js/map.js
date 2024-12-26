@@ -1,22 +1,22 @@
 mapboxgl.accessToken = mapToken;
-listing = JSON.parse(listing);
-
-// 1. Display map
-
 const map = new mapboxgl.Map({
-    container: 'map', // container ID
-    style: "mapbox://styles/mapbox/streets-v12",
-    center: listing.geometry.coordinates, // starting position [lng, lat]
-    zoom: 11 // starting zoom
+  container: "map",
+  style: "mapbox://styles/mapbox/streets-v12",
+  center: listing.geometry.coordinates,
+  zoom: 9,
 });
 
-// 2. Add marker on map
-
-const marker = new mapboxgl.Marker({color: "red"})
-    .setLngLat(listing.geometry.coordinates)
-    .setPopup(
-        new mapboxgl
-        .Popup({offset: 25})
-        .setHTML(`<h4>${listing.title}</h4><p>Exact Location Provided after booking</p>`)
+const marker = new mapboxgl.Marker({ color: "red" })
+  .setLngLat(listing.geometry.coordinates)
+  .setPopup(
+    new mapboxgl.Popup({ offset: 25 }).setHTML(
+      `<div class="map-click">
+      <h4><b>${listing.title}</b></h4> 
+      <p>Exact loaction will be provided after booking.</p>
+      </div>`
     )
-    .addTo(map)
+  )
+  .addTo(map);
+
+map.addControl(new mapboxgl.ScaleControl());
+map.addControl(new mapboxgl.NavigationControl());

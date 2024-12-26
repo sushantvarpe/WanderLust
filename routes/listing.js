@@ -1,73 +1,50 @@
 const express = require("express");
-
 const router = express.Router();
-
 const wrapAsync = require("../utils/wrapAsync.js");
-const Listing = require("../models/listing.js");
-const {isLoggedIn, isOwner, validateListing} = require("../middleware.js");
-
-// Require multer for parsing "multipart/form-data"
-
- const multer  = require('multer');
-
-// Require cloudConfig
-
+const { isLoggedIn, isOwner, validateListing } = require("../middlewares.js");
+const listingController = require("../controllers/listings.js");
+const multer = require("multer");
 const { storage } = require("../cloudConfig.js");
-
-// File cloud chya storage la upload krne
-
 const upload = multer({ storage });
 
-// Require Controller
+router
+  .route("/")
+  .get(wrapAsync(listingController.index))
+  .post(
+    isLoggedIn,
+    upload.single("listing[image]"),
+    validateListing,
+    wrapAsync(listingController.createListing)
+  );
 
-const listingController = require("../controllers/listings.js");
+router.get("/new", isLoggedIn, listingController.renderNewForm);
 
+router.get("/filter/:id", wrapAsync(listingController.filter));
+router.get("/search", listingController.search);
 
-// Use router.route method
+router
+  .route("/:id")
+  .get(wrapAsync(listingController.showListing))
+  .put(
+    isLoggedIn,
+    isOwner,
+    upload.single("listing[image]"),
+    validateListing,
+    wrapAsync(listingController.updateListing)
+  )
+  .delete(isLoggedIn, isOwner, wrapAsync(listingController.destroyListing));
 
-// Combine 1. Index Route &  4. Create Route      Common Path ("/")
+router.get(
+  "/:id/edit",
+  isLoggedIn,
+  isOwner,
+  wrapAsync(listingController.renderEditForm)
+);
 
-
-router.route("/")
-
-       // 1. Index Route
-
-      .get(wrapAsync(listingController.index))
-
-      // 4. Create Route
-
-      .post(isLoggedIn, upload.single('listing[image]'), validateListing, wrapAsync(listingController.createListing));
-
-
-      // 2. New Route
-  
-  router.get("/new", isLoggedIn, listingController.renderNewForm);
-  
-
-
-// Combine 3. Show Route & 6. Update Route & 7. Delete Route        Common Path ("/:id")
-
-
-router.route("/:id")
-
-      // 3. Show Route
-
-      .get( wrapAsync(listingController.showListing))
-
-      // 6. Update Route
-    
-      .put( isLoggedIn, isOwner, upload.single('listing[image]'), validateListing, wrapAsync(listingController.updateListing))
-
-      // 7. Delete Route
-
-      .delete(isLoggedIn, isOwner, wrapAsync(listingController.destroyListing));
-
-
-
-
-// 5. Edit Route
-
-router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(listingController.renderEditForm));
-
+router.get(
+  "/:id/reservelisting",
+  isLoggedIn,
+  wrapAsync(listingController.reserveListing)
+);
 
 module.exports = router;

@@ -1,38 +1,62 @@
+require("dotenv").config();
 const mongoose = require("mongoose");
 const initData = require("./data.js");
 const Listing = require("../models/listing.js");
+const mbxGeocoding = require("@mapbox/mapbox-sdk/services/geocoding");
+const mapToken = process.env.MAP_TOKEN;
+const geoCodingClient = mbxGeocoding({ accessToken: mapToken });
 
-// Connect to Database
-
-const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
+const mongoUrl = process.env.ATLASDB_URL;
 
 main()
-.then( () => {
-
+  .then(() => {
     console.log("connected to DB");
-})
-. catch( (err) => {
-    console.log(err); 
-});
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
 async function main() {
-
-    await mongoose.connect(MONGO_URL);
+  await mongoose.connect(mongoUrl);
 }
 
-// function for initilize database
-
 const initDB = async () => {
+  try {
+    await Listing.deleteMany({});
 
-    await Listing.deleteMany({});  // db madhil old random data delete krnar
+    const updatedData = await Promise.all(
+      initData.data.map(async (obj) => {
+        let response;
+        try {
+          response = await geoCodingClient
+            .forwardGeocode({
+              query: `${obj.location}, ${obj.country}`,
+              limit: 1,
+            })
+            .send();
+        } catch (error) {
+          console.error(
+            `Geocoding failed for ${obj.location}, ${obj.country}:`,
+            error
+          );
+          return { ...obj, owner: "66567b03fda820235197b582", geometry: null };
+        }
 
-    initData.data =  initData.data.map((obj) => ({...obj, owner: '672ae3f9178e519a8bb082f5'}));
+        const geometry = response.body.features[0].geometry || null;
 
-    // old data remove zalyavr aapla data add krnar
+        return {
+          ...obj,
+          owner: "66567b03fda820235197b582",
+          geometry,
+        };
+      })
+    );
 
-    await Listing.insertMany(initData.data);
-
-    console.log("Data was initilized");
+    await Listing.insertMany(updatedData);
+    console.log("DB is initialized");
+  } catch (error) {
+    console.error("Error initializing DB:", error);
+  }
 };
 
 initDB();
